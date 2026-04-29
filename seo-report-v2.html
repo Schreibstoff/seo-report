@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schreibstoff SEO + KI Report</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+
+:root {
+  --ink: #0f1117;
+  --paper: #f8f6f1;
+  --cream: #edeae2;
+  --accent: #c8402f;
+  --muted: #7a756d;
+  --border: #d8d3ca;
+  --success: #2a6b4a;
+  --card: #ffffff;
+  --ai-color: #6b3fa0;
+  --ai-light: #f3eeff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); font-size: 15px; line-height: 1.6; min-height: 100vh; }
+
+/* TOPBAR */
+.topbar { background: var(--ink); padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 200; }
+.brand { font-family: 'DM Serif Display', serif; font-size: 20px; color: white; }
+.brand span { color: #e8745f; }
+.brand small { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.45); margin-left: 10px; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.user-chip { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: white; }
+.user-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; }
+
+/* TABS */
+.tab-nav { background: white; border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; gap: 0; position: sticky; top: 57px; z-index: 100; }
+.tab-btn { padding: 14px 24px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; border: none; background: transparent; cursor: pointer; color: var(--muted); border-bottom: 3px solid transparent; transition: all 0.15s; display: flex; align-items: center; gap: 7px; }
+.tab-btn:hover { color: var(--ink); }
+.tab-btn.active { color: var(--ink); border-bottom-color: var(--accent); }
+.tab-btn.ai-tab.active { border-bottom-color: var(--ai-color); color: var(--ai-color); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* BUTTONS */
+.btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 20px; border-radius: 5px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; white-space: nowrap; }
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { background: #a8321f; }
+.btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+.btn-ai { background: var(--ai-color); color: white; }
+.btn-ai:hover { background: #5a3190; }
+.btn-ai:disabled { background: #ccc; cursor: not-allowed; }
+.btn-dark { background: var(--ink); color: white; }
+.btn-ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--border); }
+.btn-ghost:hover { border-color: var(--ink); }
+.btn-white { background: white; color: var(--ink); border: 1.5px solid var(--border); }
+.btn-white:hover { background: var(--paper); }
+
+/* MAIN */
+.main { max-width: 960px; margin: 0 auto; padding: 32px 24px 80px; }
+
+/* AUTH */
+#authScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 70vh; text-align: center; }
+.auth-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 48px 56px; max-width: 480px; width: 100%; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+.auth-icon { width: 56px; height: 56px; background: var(--paper); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 20px; border: 2px solid var(--cream); }
+.auth-title { font-family: 'DM Serif Display', serif; font-size: 26px; margin-bottom: 10px; }
+.auth-sub { font-size: 14px; color: var(--muted); margin-bottom: 28px; line-height: 1.6; }
+.google-btn { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 13px 20px; border: 1.5px solid var(--border); border-radius: 6px; background: white; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.15s; color: var(--ink); }
+.google-btn:hover { background: var(--paper); border-color: var(--ink); }
+.google-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+.auth-note { font-size: 11px; color: var(--muted); margin-top: 14px; }
+
+/* APP */
+#appScreen { display: none; }
+
+/* PROPERTY BAR */
+.property-bar { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.property-bar label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); white-space: nowrap; }
+select { flex: 1; min-width: 200px; padding: 9px 14px; border: 1.5px solid var(--border); border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 14px; background: var(--paper); color: var(--ink); cursor: pointer; }
+select:focus { outline: none; border-color: var(--accent); }
+.date-inputs { display: flex; align-items: center; gap: 8px; }
+.date-inputs input[type="date"] { padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 13px; background: var(--paper); color: var(--ink); }
+.date-inputs input[type="date"]:focus { outline: none; border-color: var(--accent); }
+.date-sep { font-size: 12px; color: var(--muted); }
+
+/* LOADING */
+.loading-overlay { display: none; position: fixed; inset: 0; background: rgba(15,17,23,0.6); z-index: 500; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+.loading-overlay.active { display: flex; }
+.spinner { width: 44px; height: 44px; border: 3px solid rgba(255,255,255,0.2); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { color: white; font-size: 14px; font-weight: 500; }
+
+/* ERROR */
+.error-banner { display: none; background: #fdf2f2; border: 1px solid #f5c6cb; border-radius: 6px; padding: 14px 18px; font-size: 13px; color: #7b1d1d; margin-bottom: 20px; }
+.error-banner.show { display: block; }
+
+/* KPIs */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+.kpi-card { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 20px 18px; border-top: 3px solid var(--accent); }
+.kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 10px; }
+.kpi-value { font-family: 'DM Serif Display', serif; font-size: 30px; line-height: 1; }
+.kpi-delta { font-size: 12px; font-weight: 600; margin-top: 7px; }
+.kpi-delta.up { color: var(--success); }
+.kpi-delta.down { color: var(--accent); }
+.kpi-delta.neutral { color: var(--muted); }
+
+/* CARDS */
+.card { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 20px; }
+.card-title { font-family: 'DM Serif Display', serif; font-size: 18px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--cream); display: flex; align-items: center; justify-content: space-between; }
+.card-title small { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.chart-wrap { height: 240px; position: relative; }
+
+/* TABLES */
+.data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.data-table th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.09em; font-weight: 700; color: var(--muted); padding: 0 12px 12px; text-align: left; border-bottom: 2px solid var(--ink); }
+.data-table th.num { text-align: right; }
+.data-table td { padding: 10px 12px; border-bottom: 1px solid var(--cream); vertical-align: middle; }
+.data-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--paper); }
+.pos-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 24px; border-radius: 4px; font-size: 12px; font-weight: 700; padding: 0 6px; }
+.pos-1 { background: #d4edda; color: #155724; }
+.pos-2 { background: #d1ecf1; color: #0c5460; }
+.pos-3 { background: #fff3cd; color: #856404; }
+.pos-4 { background: #f8d7da; color: #721c24; }
+.url-cell { font-size: 12px; color: var(--muted); max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* FORMS */
+textarea { width: 100%; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 14px; line-height: 1.6; background: var(--paper); color: var(--ink); resize: vertical; min-height: 90px; transition: border-color 0.15s; }
+textarea:focus { outline: none; border-color: var(--accent); background: white; }
+input[type="text"] { width: 100%; padding: 9px 14px; border: 1.5px solid var(--border); border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 14px; background: var(--paper); color: var(--ink); transition: border-color 0.15s; }
+input[type="text"]:focus { outline: none; border-color: var(--accent); background: white; }
+.field-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); margin-bottom: 7px; display: block; }
+.field-group { margin-bottom: 16px; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.action-bar { display: flex; gap: 12px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+
+/* EMPTY STATE */
+.empty-state { text-align: center; padding: 60px 24px; color: var(--muted); }
+.empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+.empty-state h3 { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--ink); margin-bottom: 8px; }
+
+/* ── KI SICHTBARKEIT ── */
+.ai-hero { background: linear-gradient(135deg, #1a0533 0%, #2d1060 100%); border-radius: 12px; padding: 32px; margin-bottom: 24px; color: white; }
+.ai-hero h2 { font-family: 'DM Serif Display', serif; font-size: 24px; margin-bottom: 8px; }
+.ai-hero p { font-size: 14px; opacity: 0.75; max-width: 540px; }
+
+.ai-setup { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 20px; }
+.ai-setup-title { font-family: 'DM Serif Display', serif; font-size: 18px; margin-bottom: 16px; }
+
+.query-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+.query-item { display: flex; align-items: flex-start; gap: 10px; background: var(--paper); border-radius: 6px; padding: 12px; border: 1px solid var(--border); }
+.query-item input[type="checkbox"] { margin-top: 3px; accent-color: var(--ai-color); width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; }
+.query-item label { font-size: 13px; line-height: 1.5; cursor: pointer; color: var(--ink); }
+
+/* AI Result Cards */
+.ai-results { display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
+
+.ai-result-card { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.ai-result-header { padding: 14px 18px; background: var(--paper); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ai-result-query { font-size: 13px; font-weight: 600; color: var(--ink); flex: 1; }
+.ai-result-source { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 3px 10px; border-radius: 12px; }
+.source-claude { background: var(--ai-light); color: var(--ai-color); }
+.source-chatgpt { background: #e8f8f0; color: #1a7a4a; }
+.source-perplexity { background: #fff0e0; color: #b05a00; }
+.ai-result-body { padding: 16px 18px; }
+.ai-result-text { font-size: 13.5px; line-height: 1.7; color: var(--ink); }
+.ai-result-text.loading { color: var(--muted); font-style: italic; display: flex; align-items: center; gap: 8px; }
+
+.mention-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 700; }
+.mention-yes { background: #d4edda; color: #155724; }
+.mention-no { background: #f8d7da; color: #721c24; }
+.mention-unclear { background: #fff3cd; color: #856404; }
+
+/* AI Score */
+.ai-score-bar { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 20px; }
+.ai-score-title { font-family: 'DM Serif Display', serif; font-size: 18px; margin-bottom: 20px; }
+.score-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.score-card { text-align: center; padding: 20px; border-radius: 8px; background: var(--paper); border: 1px solid var(--border); }
+.score-source { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; }
+.score-num { font-family: 'DM Serif Display', serif; font-size: 36px; line-height: 1; }
+.score-label { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.score-high { color: var(--success); }
+.score-mid { color: #856404; }
+.score-low { color: var(--accent); }
+
+/* Manual input for ChatGPT / Perplexity */
+.manual-check { background: var(--paper); border: 1px dashed var(--border); border-radius: 8px; padding: 20px; }
+.manual-check h4 { font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+/* Spinner inline */
+.spin-sm { width: 16px; height: 16px; border: 2px solid rgba(107,63,160,0.2); border-top-color: var(--ai-color); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
+
+@media print {
+  .topbar, .tab-nav, .property-bar, .action-bar, .ai-setup, .no-print { display: none !important; }
+  body { background: white; }
+  .card, .ai-result-card, .ai-score-bar { box-shadow: none; page-break-inside: avoid; }
+  .tab-content { display: block !important; }
+}
+
+@media (max-width: 640px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .two-col, .query-grid, .score-grid { grid-template-columns: 1fr; }
+  .property-bar { flex-direction: column; align-items: stretch; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">Schreib<span>stoff</span><small>SEO + KI Report</small></div>
+  <div class="topbar-right" id="topbarRight">
+    <span style="font-size:12px;color:rgba(255,255,255,0.5);">Nicht verbunden</span>
+  </div>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Lade Daten…</div>
+</div>
+
+<div class="main">
+  <div class="error-banner" id="errorBanner"></div>
+
+  <!-- AUTH -->
+  <div id="authScreen">
+    <div class="auth-card">
+      <div class="auth-icon">📊</div>
+      <div class="auth-title">SEO + KI Report</div>
+      <div class="auth-sub">Verbinde dich mit Google, um Search Console Daten zu laden und die KI-Sichtbarkeit deiner Kunden zu prüfen.</div>
+      <button class="google-btn" onclick="startAuth()">
+        <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.47 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Mit Google verbinden
+      </button>
+      <div class="auth-note">Nur lesender Zugriff auf Search Console. Kein Schreiben, keine Weitergabe.</div>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="appScreen">
+
+    <!-- Property Bar -->
+    <div class="property-bar no-print">
+      <label>Domain</label>
+      <select id="propertySelect" onchange="onPropertyChange()">
+        <option value="">— Domain wählen —</option>
+      </select>
+      <div class="date-inputs">
+        <label>Zeitraum</label>
+        <input type="date" id="dateFrom">
+        <span class="date-sep">bis</span>
+        <input type="date" id="dateTo">
+      </div>
+      <button class="btn btn-primary" onclick="loadSEOData()" id="loadBtn" disabled>↓ SEO laden</button>
+    </div>
+
+    <!-- TABS -->
+    <div class="tab-nav no-print">
+      <button class="tab-btn active" onclick="switchTab('seo', this)">📈 SEO Report</button>
+      <button class="tab-btn ai-tab" onclick="switchTab('ai', this)">🤖 KI-Sichtbarkeit</button>
+    </div>
+
+    <!-- SEO TAB -->
+    <div class="tab-content active" id="tab-seo">
+      <div id="seoArea">
+        <div class="empty-state">
+          <div class="icon">🔍</div>
+          <h3>Domain & Zeitraum wählen</h3>
+          <p>Wähle oben eine Domain und klick auf "SEO laden".</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI TAB -->
+    <div class="tab-content" id="tab-ai">
+      <div class="ai-hero">
+        <h2>KI-Sichtbarkeits-Check</h2>
+        <p>Prüfe automatisch, ob dein Kunde in den Antworten von Claude, ChatGPT und Perplexity auftaucht – wenn potenzielle Kunden nach IT-Dienstleistern in der Region fragen.</p>
+      </div>
+
+      <!-- Setup -->
+      <div class="ai-setup no-print">
+        <div class="ai-setup-title">Einstellungen</div>
+        <div class="two-col">
+          <div class="field-group">
+            <label class="field-label">Firmenname</label>
+            <input type="text" id="aiCompany" placeholder="z.B. riomar IT-Systemhaus GmbH">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Stadt / Region</label>
+            <input type="text" id="aiCity" placeholder="z.B. Wiesbaden">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Hauptleistung</label>
+            <input type="text" id="aiService" placeholder="z.B. Managed IT Services, NIS2-Beratung">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Zielgruppe</label>
+            <input type="text" id="aiTarget" placeholder="z.B. KMU, mittelständische Unternehmen">
+          </div>
+        </div>
+
+        <div class="field-label" style="margin-top:8px;">Abfragen – Claude prüft diese automatisch:</div>
+        <div class="query-grid" id="queryGrid"></div>
+
+        <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;">
+          <button class="btn btn-ai" onclick="runAICheck()" id="runAiBtn">🤖 Claude-Check starten</button>
+          <button class="btn btn-ghost" onclick="resetAIQueries()">Abfragen zurücksetzen</button>
+        </div>
+      </div>
+
+      <!-- Score Overview -->
+      <div id="aiScoreArea"></div>
+
+      <!-- Claude Results -->
+      <div id="aiResultsArea"></div>
+
+      <!-- Manual: ChatGPT + Perplexity -->
+      <div class="card" id="manualCheckCard" style="display:none;">
+        <div class="card-title">Manuelle Checks <small>ChatGPT & Perplexity</small></div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Kopiere die generierten Fragen in ChatGPT und Perplexity und trage das Ergebnis hier ein.</p>
+
+        <div id="manualQueriesDisplay" style="background:var(--paper);border-radius:6px;padding:16px;margin-bottom:20px;font-size:13px;line-height:2;border:1px solid var(--border);"></div>
+
+        <div class="two-col">
+          <div>
+            <div class="field-label" style="color:#1a7a4a;">💬 ChatGPT – Ergebnis</div>
+            <div class="field-group">
+              <label class="field-label" style="font-size:10px;">Wird die Firma erwähnt?</label>
+              <select id="chatgptMention" style="width:100%;">
+                <option value="">— noch nicht geprüft —</option>
+                <option value="yes">✅ Ja, wird erwähnt</option>
+                <option value="no">❌ Nein, nicht erwähnt</option>
+                <option value="unclear">⚠ Unklar / indirekt</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label class="field-label" style="font-size:10px;">Notizen</label>
+              <textarea id="chatgptNotes" rows="3" placeholder="Was hat ChatGPT geantwortet?"></textarea>
+            </div>
+          </div>
+          <div>
+            <div class="field-label" style="color:#b05a00;">🔍 Perplexity – Ergebnis</div>
+            <div class="field-group">
+              <label class="field-label" style="font-size:10px;">Wird die Firma erwähnt?</label>
+              <select id="perplexityMention" style="width:100%;">
+                <option value="">— noch nicht geprüft —</option>
+                <option value="yes">✅ Ja, wird erwähnt</option>
+                <option value="no">❌ Nein, nicht erwähnt</option>
+                <option value="unclear">⚠ Unklar / indirekt</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label class="field-label" style="font-size:10px;">Notizen</label>
+              <textarea id="perplexityNotes" rows="3" placeholder="Was hat Perplexity geantwortet?"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-group" style="margin-top:8px;">
+          <label class="field-label">Handlungsempfehlung für den Kunden</label>
+          <textarea id="aiCommentary" rows="4" placeholder="z.B. Die KI-Sichtbarkeit bei Claude ist gut – das Unternehmen wird in 3 von 4 Abfragen genannt. Bei ChatGPT besteht Nachholbedarf. Empfehlung: Stärkere Präsenz auf Branchenverzeichnissen und Wikipedia-ähnlichen Quellen aufbauen."></textarea>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="updateScore()">Score aktualisieren</button>
+          <button class="btn btn-ghost" onclick="window.print()">⎙ Gesamt-Report als PDF</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const CLIENT_ID = '1002395679750-su462mgkbbobb7ugr79pvtk4dn9gdt50.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/webmasters.readonly';
+let accessToken = null;
+let tokenClient = null;
+let currentSEOData = {};
+let aiQueryResults = [];
+
+// Default queries (will be customized)
+const defaultQueries = [
+  'Welches IT-Systemhaus empfiehlst du in {city}?',
+  'Welche IT-Dienstleister gibt es in {city} für KMU?',
+  'Wer hilft {target} in {city} mit {service}?',
+  'Welche IT-Unternehmen aus {city} sind bekannt?',
+  'IT-Support für Unternehmen in {city} – wer ist gut?',
+  'Welche Managed Service Provider gibt es in der Region {city}?'
+];
+
+function buildQueries() {
+  const company = document.getElementById('aiCompany').value || 'das Unternehmen';
+  const city = document.getElementById('aiCity').value || 'der Region';
+  const service = document.getElementById('aiService').value || 'IT-Services';
+  const target = document.getElementById('aiTarget').value || 'Unternehmen';
+
+  return defaultQueries.map(q =>
+    q.replace(/{city}/g, city)
+     .replace(/{service}/g, service)
+     .replace(/{target}/g, target)
+     .replace(/{company}/g, company)
+  );
+}
+
+function initQueryGrid() {
+  const grid = document.getElementById('queryGrid');
+  grid.innerHTML = '';
+  const queries = buildQueries();
+  queries.forEach((q, i) => {
+    grid.innerHTML += `
+      <div class="query-item">
+        <input type="checkbox" id="q${i}" checked>
+        <label for="q${i}">${q}</label>
+      </div>`;
+  });
+}
+
+function resetAIQueries() {
+  initQueryGrid();
+}
+
+// Init
+window.onload = function() {
+  setDefaultDates();
+  initQueryGrid();
+
+  // Update queries when fields change
+  ['aiCompany','aiCity','aiService','aiTarget'].forEach(id => {
+    document.getElementById(id).addEventListener('input', initQueryGrid);
+  });
+
+  try {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: handleTokenResponse,
+    });
+  } catch(e) {
+    setTimeout(() => {
+      try {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: CLIENT_ID,
+          scope: SCOPES,
+          callback: handleTokenResponse,
+        });
+      } catch(e2) {}
+    }, 1500);
+  }
+};
+
+function setDefaultDates() {
+  const now = new Date();
+  const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastOfLastMonth = new Date(firstOfThisMonth - 1);
+  const firstOfLastMonth = new Date(lastOfLastMonth.getFullYear(), lastOfLastMonth.getMonth(), 1);
+  document.getElementById('dateFrom').value = firstOfLastMonth.toISOString().split('T')[0];
+  document.getElementById('dateTo').value = lastOfLastMonth.toISOString().split('T')[0];
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+function startAuth() {
+  if (!tokenClient) { showError('Google-Authentifizierung nicht bereit. Bitte Seite neu laden.'); return; }
+  tokenClient.requestAccessToken();
+}
+
+async function handleTokenResponse(response) {
+  if (response.error) { showError('Anmeldung fehlgeschlagen: ' + response.error); return; }
+  accessToken = response.access_token;
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+
+  try {
+    const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + accessToken } });
+    const u = await r.json();
+    document.getElementById('topbarRight').innerHTML = `
+      <div class="user-chip"><span class="user-dot"></span>${u.email || 'Verbunden'}</div>
+      <button class="btn btn-white no-print" onclick="signOut()" style="font-size:12px;padding:7px 14px;">Abmelden</button>`;
+  } catch(e) {}
+
+  await loadProperties();
+}
+
+async function loadProperties() {
+  showLoading('Domains laden…');
+  try {
+    const resp = await fetch('https://www.googleapis.com/webmasters/v3/sites', { headers: { Authorization: 'Bearer ' + accessToken } });
+    const data = await resp.json();
+    hideLoading();
+    if (!resp.ok) { showError('Fehler: ' + (data.error?.message || resp.status)); return; }
+    const sites = data.siteEntry || [];
+    const sel = document.getElementById('propertySelect');
+    sel.innerHTML = '<option value="">— Domain wählen —</option>';
+    sites.forEach(site => {
+      const opt = document.createElement('option');
+      opt.value = site.siteUrl;
+      opt.textContent = site.siteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      sel.appendChild(opt);
+    });
+    document.getElementById('loadBtn').disabled = false;
+  } catch(e) { hideLoading(); showError('Netzwerkfehler: ' + e.message); }
+}
+
+function onPropertyChange() {
+  const val = document.getElementById('propertySelect').value;
+  document.getElementById('loadBtn').disabled = !val;
+  // Auto-fill city hint from domain
+  if (val) {
+    const domain = val.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    const company = document.getElementById('aiCompany');
+    if (!company.value) company.value = domain;
+  }
+}
+
+async function loadSEOData() {
+  const property = document.getElementById('propertySelect').value;
+  const dateFrom = document.getElementById('dateFrom').value;
+  const dateTo = document.getElementById('dateTo').value;
+  if (!property || !dateFrom || !dateTo) { showError('Bitte Domain und Zeitraum wählen.'); return; }
+  hideError();
+  showLoading('Lade SEO-Daten…');
+  try {
+    const [summary, keywords, pages, prevSummary] = await Promise.all([
+      scQuery(property, dateFrom, dateTo, [], 1),
+      scQuery(property, dateFrom, dateTo, ['query'], 10),
+      scQuery(property, dateFrom, dateTo, ['page'], 8),
+      getPrevPeriodSummary(property, dateFrom, dateTo)
+    ]);
+    showLoading('Lade Verlaufsdaten…');
+    const monthly = await getMonthlyTrend(property, dateFrom, dateTo);
+    hideLoading();
+    currentSEOData = { property, dateFrom, dateTo, summary, keywords, pages, prevSummary, monthly };
+    renderSEO(currentSEOData);
+  } catch(e) { hideLoading(); showError('Fehler: ' + e.message); }
+}
+
+async function scQuery(property, startDate, endDate, dimensions, rowLimit = 10) {
+  const body = { startDate, endDate, dimensions, rowLimit };
+  const resp = await fetch(
+    `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(property)}/searchAnalytics/query`,
+    { method: 'POST', headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+  );
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.error?.message || resp.status);
+  return data;
+}
+
+async function getPrevPeriodSummary(property, from, to) {
+  try {
+    const fromDate = new Date(from), toDate = new Date(to);
+    const days = Math.round((toDate - fromDate) / 86400000);
+    const prevTo = new Date(fromDate - 86400000);
+    const prevFrom = new Date(prevTo - days * 86400000);
+    return await scQuery(property, prevFrom.toISOString().split('T')[0], prevTo.toISOString().split('T')[0], [], 1);
+  } catch(e) { return null; }
+}
+
+async function getMonthlyTrend(property, from, to) {
+  try {
+    const resp = await fetch(
+      `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(property)}/searchAnalytics/query`,
+      { method: 'POST', headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startDate: getMonthsAgo(from, 5), endDate: to, dimensions: ['date'], rowLimit: 500 }) }
+    );
+    const data = await resp.json();
+    if (!resp.ok) return null;
+    const monthly = {};
+    (data.rows || []).forEach(row => {
+      const month = row.keys[0].substring(0, 7);
+      if (!monthly[month]) monthly[month] = { impressions: 0, clicks: 0 };
+      monthly[month].impressions += row.impressions;
+      monthly[month].clicks += row.clicks;
+    });
+    return monthly;
+  } catch(e) { return null; }
+}
+
+function getMonthsAgo(dateStr, months) {
+  const d = new Date(dateStr);
+  d.setMonth(d.getMonth() - months);
+  return d.toISOString().split('T')[0];
+}
+
+// ── KI CHECK ──
+async function runAICheck() {
+  const company = document.getElementById('aiCompany').value;
+  const city = document.getElementById('aiCity').value;
+  if (!company || !city) { alert('Bitte Firmenname und Stadt eingeben.'); return; }
+
+  const queries = buildQueries().filter((_, i) => document.getElementById('q' + i)?.checked);
+  if (queries.length === 0) { alert('Bitte mindestens eine Abfrage auswählen.'); return; }
+
+  document.getElementById('runAiBtn').disabled = true;
+  document.getElementById('runAiBtn').textContent = '⏳ Prüfe…';
+
+  // Show results container
+  const resultsArea = document.getElementById('aiResultsArea');
+  resultsArea.innerHTML = `
+    <div class="card">
+      <div class="card-title">Claude-Antworten <small>Live-Check</small></div>
+      <div class="ai-results" id="aiResultsList"></div>
+    </div>`;
+
+  const list = document.getElementById('aiResultsList');
+  aiQueryResults = [];
+
+  for (let i = 0; i < queries.length; i++) {
+    const q = queries[i];
+    const cardId = `aiCard${i}`;
+
+    list.innerHTML += `
+      <div class="ai-result-card" id="${cardId}">
+        <div class="ai-result-header">
+          <span class="ai-result-query">"${escHtml(q)}"</span>
+          <span class="ai-result-source source-claude">Claude</span>
+        </div>
+        <div class="ai-result-body">
+          <div class="ai-result-text loading"><span class="spin-sm"></span> Claude wird befragt…</div>
+        </div>
+      </div>`;
+
+    try {
+      const answer = await askClaude(q, company, city);
+      const mentioned = checkMention(answer, company);
+      aiQueryResults.push({ query: q, answer, mentioned });
+
+      document.getElementById(cardId).querySelector('.ai-result-body').innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <span class="mention-badge ${mentioned === 'yes' ? 'mention-yes' : mentioned === 'no' ? 'mention-no' : 'mention-unclear'}">
+            ${mentioned === 'yes' ? '✅ Erwähnt' : mentioned === 'no' ? '❌ Nicht erwähnt' : '⚠ Unklar'}
+          </span>
+        </div>
+        <div class="ai-result-text">${escHtml(answer)}</div>`;
+    } catch(e) {
+      aiQueryResults.push({ query: q, answer: 'Fehler: ' + e.message, mentioned: 'unclear' });
+      document.getElementById(cardId).querySelector('.ai-result-body').innerHTML =
+        `<div class="ai-result-text" style="color:var(--accent);">Fehler beim Abrufen: ${escHtml(e.message)}</div>`;
+    }
+  }
+
+  document.getElementById('runAiBtn').disabled = false;
+  document.getElementById('runAiBtn').textContent = '🤖 Erneut prüfen';
+
+  // Show manual section and score
+  document.getElementById('manualCheckCard').style.display = 'block';
+  updateManualQueries(queries);
+  updateScore();
+}
+
+async function askClaude(question, company, city) {
+  const systemPrompt = `Du bist ein hilfreicher Assistent. Beantworte die Frage ehrlich und direkt. Wenn du IT-Dienstleister oder IT-Systemhäuser empfiehlst, nenne konkrete Namen falls dir welche bekannt sind. Antworte auf Deutsch, maximal 150 Wörter.`;
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 300,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: question }]
+    })
+  });
+
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.error?.message || resp.status);
+  return data.content?.[0]?.text || 'Keine Antwort';
+}
+
+function checkMention(text, company) {
+  if (!company || !text) return 'unclear';
+  const name = company.toLowerCase();
+  const textLower = text.toLowerCase();
+  // Check for main name parts
+  const parts = name.split(/[\s,.-]+/).filter(p => p.length > 3);
+  const found = parts.some(p => textLower.includes(p));
+  if (found) return 'yes';
+  if (textLower.includes('nicht bekannt') || textLower.includes('keine spezifischen') || textLower.includes('kann ich keine')) return 'no';
+  return 'no';
+}
+
+function updateManualQueries(queries) {
+  const div = document.getElementById('manualQueriesDisplay');
+  div.innerHTML = '<strong style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Diese Fragen bei ChatGPT & Perplexity eingeben:</strong><br><br>' +
+    queries.map((q, i) => `<span style="color:var(--muted);font-size:12px;">${i+1}.</span> ${escHtml(q)}`).join('<br>');
+}
+
+function updateScore() {
+  const claudeYes = aiQueryResults.filter(r => r.mentioned === 'yes').length;
+  const claudeTotal = aiQueryResults.length;
+  const claudeScore = claudeTotal > 0 ? Math.round((claudeYes / claudeTotal) * 100) : null;
+
+  const chatgptVal = document.getElementById('chatgptMention')?.value;
+  const perplexityVal = document.getElementById('perplexityMention')?.value;
+
+  const scoreArea = document.getElementById('aiScoreArea');
+  if (claudeTotal === 0) return;
+
+  const scoreCard = (label, score, colorClass, sublabel) => `
+    <div class="score-card">
+      <div class="score-source">${label}</div>
+      <div class="score-num ${colorClass}">${score}</div>
+      <div class="score-label">${sublabel}</div>
+    </div>`;
+
+  const claudeColor = claudeScore >= 60 ? 'score-high' : claudeScore >= 30 ? 'score-mid' : 'score-low';
+  const mentionLabel = v => v === 'yes' ? '✅ Ja' : v === 'no' ? '❌ Nein' : v === 'unclear' ? '⚠ Unklar' : '— offen';
+  const mentionColor = v => v === 'yes' ? 'score-high' : v === 'no' ? 'score-low' : 'score-mid';
+
+  scoreArea.innerHTML = `
+    <div class="ai-score-bar">
+      <div class="ai-score-title">KI-Sichtbarkeit – Übersicht</div>
+      <div class="score-grid">
+        ${scoreCard('Claude', claudeScore + '%', claudeColor, `${claudeYes} von ${claudeTotal} Abfragen`)}
+        ${scoreCard('ChatGPT', mentionLabel(chatgptVal), mentionColor(chatgptVal), 'Manueller Check')}
+        ${scoreCard('Perplexity', mentionLabel(perplexityVal), mentionColor(perplexityVal), 'Manueller Check')}
+      </div>
+    </div>`;
+}
+
+// SEO Rendering
+function renderSEO(d) {
+  const summary = d.summary?.rows?.[0] || {};
+  const prev = d.prevSummary?.rows?.[0] || {};
+  const imp = Math.round(summary.impressions || 0);
+  const clk = Math.round(summary.clicks || 0);
+  const pos = (summary.position || 0).toFixed(1);
+  const ctr = imp > 0 ? ((clk / imp) * 100).toFixed(1) : '0.0';
+  const prevImp = Math.round(prev.impressions || 0);
+  const prevClk = Math.round(prev.clicks || 0);
+  const prevPos = (prev.position || 0).toFixed(1);
+  const domainLabel = d.property.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  const periodLabel = formatPeriod(d.dateFrom, d.dateTo);
+
+  let html = `
+    <div class="card no-print" style="background:var(--ink);border-color:var(--ink);padding:18px 24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-family:'DM Serif Display',serif;font-size:20px;color:white;">${domainLabel}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:2px;">${periodLabel}</div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn no-print" style="background:rgba(255,255,255,0.12);color:white;" onclick="loadSEOData()">↺ Aktualisieren</button>
+          <button class="btn btn-primary no-print" onclick="window.print()">⎙ PDF speichern</button>
+        </div>
+      </div>
+    </div>
+    <div class="kpi-grid">
+      ${kpiCard('Impressionen', formatNum(imp), deltaHtml(imp, prevImp, false))}
+      ${kpiCard('Klicks', formatNum(clk), deltaHtml(clk, prevClk, false))}
+      ${kpiCard('Klickrate', ctr + '%', '')}
+      ${kpiCard('Ø Position', pos, deltaHtml(parseFloat(prevPos), parseFloat(pos), true))}
+    </div>`;
+
+  if (d.monthly && Object.keys(d.monthly).length >= 2) {
+    const months = Object.keys(d.monthly).sort();
+    const labels = months.map(m => { const [y,mo] = m.split('-'); return new Date(y,mo-1).toLocaleDateString('de-DE',{month:'short',year:'2-digit'}); });
+    window._chartData = { labels, impData: months.map(m => d.monthly[m].impressions), clkData: months.map(m => d.monthly[m].clicks) };
+    html += `<div class="two-col">
+      <div class="card"><div class="card-title">Impressionen <small>Verlauf</small></div><div class="chart-wrap"><canvas id="impChart"></canvas></div></div>
+      <div class="card"><div class="card-title">Klicks <small>Verlauf</small></div><div class="chart-wrap"><canvas id="clkChart"></canvas></div></div>
+    </div>`;
+  }
+
+  const kws = d.keywords?.rows || [];
+  if (kws.length > 0) {
+    html += `<div class="card"><div class="card-title">Top Keywords <small>Search Console</small></div>
+      <table class="data-table"><thead><tr><th>Keyword</th><th class="num">Position</th><th class="num">Impressionen</th><th class="num">Klicks</th><th class="num">CTR</th></tr></thead>
+      <tbody>${kws.map(row => `<tr>
+        <td><strong>${escHtml(row.keys[0])}</strong></td>
+        <td class="num"><span class="pos-badge ${posCls(row.position)}">${row.position.toFixed(1)}</span></td>
+        <td class="num">${formatNum(Math.round(row.impressions))}</td>
+        <td class="num">${formatNum(Math.round(row.clicks))}</td>
+        <td class="num">${(row.ctr*100).toFixed(1)}%</td>
+      </tr>`).join('')}</tbody></table></div>`;
+  }
+
+  const pgs = d.pages?.rows || [];
+  if (pgs.length > 0) {
+    html += `<div class="card"><div class="card-title">Beste Inhalte <small>nach Klicks</small></div>
+      <table class="data-table"><thead><tr><th>URL</th><th class="num">Klicks</th><th class="num">Impressionen</th><th class="num">Ø Pos.</th></tr></thead>
+      <tbody>${pgs.map(row => {
+        let display = row.keys[0].replace(/^https?:\/\/[^/]+/, '') || '/';
+        return `<tr><td class="url-cell" title="${escHtml(row.keys[0])}">${escHtml(display)}</td><td class="num"><strong>${formatNum(Math.round(row.clicks))}</strong></td><td class="num">${formatNum(Math.round(row.impressions))}</td><td class="num">${row.position.toFixed(1)}</td></tr>`;
+      }).join('')}</tbody></table></div>`;
+  }
+
+  html += `<div class="card no-print"><div class="card-title">Kommentar</div>
+    <div class="field-group"><label class="field-label">Einschätzung für den Kunden</label>
+    <textarea id="seoCommentary" rows="4" placeholder="Deine Einschätzung zur Entwicklung…"></textarea></div>
+    <div class="field-group"><label class="field-label">Nächste Maßnahmen</label>
+    <textarea id="seoNext" rows="3" placeholder="Was planst du im nächsten Monat?"></textarea></div>
+    <div class="action-bar"><button class="btn btn-primary" onclick="window.print()">⎙ Als PDF speichern</button></div></div>`;
+
+  document.getElementById('seoArea').innerHTML = html;
+
+  if (window._chartData) {
+    setTimeout(() => {
+      const base = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+        scales: { x: { grid: { display: false }, ticks: { font: { family: 'DM Sans', size: 11 }, color: '#7a756d' } },
+                  y: { grid: { color: '#edeae2' }, ticks: { font: { family: 'DM Sans', size: 11 }, color: '#7a756d' }, beginAtZero: true } } };
+      const { labels, impData, clkData } = window._chartData;
+      new Chart(document.getElementById('impChart'), { type: 'bar', data: { labels, datasets: [{ data: impData, backgroundColor: '#0f1117', borderRadius: 4 }] }, options: base });
+      new Chart(document.getElementById('clkChart'), { type: 'line', data: { labels, datasets: [{ data: clkData, borderColor: '#c8402f', backgroundColor: 'rgba(200,64,47,0.1)', borderWidth: 2.5, pointBackgroundColor: '#c8402f', pointRadius: 4, fill: true, tension: 0.35 }] }, options: base });
+    }, 80);
+  }
+}
+
+// Helpers
+function kpiCard(label, value, delta) {
+  return `<div class="kpi-card"><div class="kpi-label">${label}</div><div class="kpi-value">${value}</div>${delta}</div>`;
+}
+function deltaHtml(curr, prev, invertGood) {
+  if (!prev || !curr) return '<div class="kpi-delta neutral">— kein Vergleich</div>';
+  const diff = curr - prev;
+  if (diff === 0) return '<div class="kpi-delta neutral">— unverändert</div>';
+  const pct = Math.abs(Math.round((diff / prev) * 100));
+  const isPositive = invertGood ? diff < 0 : diff > 0;
+  const arrow = diff > 0 ? '▲' : '▼';
+  return `<div class="kpi-delta ${isPositive ? 'up' : 'down'}">${arrow} ${pct}% ggü. Vorperiode</div>`;
+}
+function posCls(pos) { return pos <= 3 ? 'pos-1' : pos <= 10 ? 'pos-2' : pos <= 20 ? 'pos-3' : 'pos-4'; }
+function formatNum(n) { return (!n && n !== 0) ? '—' : n.toLocaleString('de-DE'); }
+function formatPeriod(from, to) {
+  const f = new Date(from).toLocaleDateString('de-DE',{day:'2-digit',month:'short',year:'numeric'});
+  const t = new Date(to).toLocaleDateString('de-DE',{day:'2-digit',month:'short',year:'numeric'});
+  return `${f} – ${t}`;
+}
+function escHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showLoading(text) { document.getElementById('loadingText').textContent = text || 'Laden…'; document.getElementById('loadingOverlay').classList.add('active'); }
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+function showError(msg) { const el = document.getElementById('errorBanner'); el.textContent = '⚠ ' + msg; el.classList.add('show'); }
+function hideError() { document.getElementById('errorBanner').classList.remove('show'); }
+function signOut() { accessToken = null; location.reload(); }
+</script>
+</body>
+</html>
