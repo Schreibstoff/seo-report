@@ -747,11 +747,22 @@ async function loadProperties() {
 function onPropertyChange() {
   const val = document.getElementById('propertySelect').value;
   document.getElementById('loadBtn').disabled = !val;
-  // Auto-fill city hint from domain
   if (val) {
-    const domain = val.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    // Clean up GSC domain format: sc-domain:mit-system.eu → mit-system.eu → MIT-System
+    let domain = val
+      .replace(/^sc-domain:/, '')
+      .replace(/^https?:\/\//, '')
+      .replace(/\/$/, '');
+    // Extract main name: mit-system.eu → mit-system → MIT-System
+    const namePart = domain.split('.')[0];
+    const cleanName = namePart
+      .split('-')
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join('-');
     const company = document.getElementById('aiCompany');
-    if (!company.value) company.value = domain;
+    if (!company.value || company.value.startsWith('sc-domain:')) {
+      company.value = cleanName;
+    }
   }
 }
 
