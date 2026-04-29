@@ -195,9 +195,42 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); backgroun
 @media print {
   .topbar, .tab-nav, .property-bar, .action-bar, .ai-setup, .no-print { display: none !important; }
   body { background: white; }
-  .card, .ai-result-card, .ai-score-bar { box-shadow: none; page-break-inside: avoid; }
+  .card, .ai-result-card, .ai-score-bar { box-shadow: none; page-break-inside: avoid; border: 1px solid #ddd; }
   .tab-content { display: block !important; }
+  /* Show commentary cards in print */
+  .card.no-print { display: block !important; }
+  .card.no-print .action-bar { display: none !important; }
+  /* Style textareas as plain text in print */
+  textarea {
+    border: none !important;
+    background: transparent !important;
+    resize: none;
+    padding: 0 !important;
+    font-size: 13px !important;
+    color: #0f1117 !important;
+  }
+  /* Print header */
+  .print-header { display: flex !important; }
+  /* Hide buttons inside no-print cards */
+  .card.no-print button { display: none !important; }
 }
+
+/* Print header – hidden on screen */
+.print-header {
+  display: none;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 3px solid #0f1117;
+}
+.print-brand { font-family: 'DM Serif Display', serif; font-size: 26px; }
+.print-brand span { color: #c8402f; }
+.print-brand small { display: block; font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: #7a756d; margin-top: 3px; }
+.print-meta { text-align: right; }
+.print-meta .pm-client { font-family: 'DM Serif Display', serif; font-size: 18px; }
+.print-meta .pm-period { font-size: 12px; color: #7a756d; margin-top: 3px; }
+.print-meta .pm-by { font-size: 11px; color: #7a756d; }
 
 @media (max-width: 640px) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
@@ -221,6 +254,15 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); backgroun
 </div>
 
 <div class="main">
+  <!-- Print-only header -->
+  <div class="print-header" id="printHeader">
+    <div class="print-brand">Schreib<span>stoff</span><small>content · kreation · marketing</small></div>
+    <div class="print-meta">
+      <div class="pm-client" id="phClient"></div>
+      <div class="pm-period" id="phPeriod"></div>
+      <div class="pm-by">Heiko Barz · heiko.barz@gmail.com · schreib-stoff.de</div>
+    </div>
+  </div>
   <div class="error-banner" id="errorBanner"></div>
 
   <!-- AUTH -->
@@ -739,6 +781,10 @@ function renderSEO(d) {
   const domainLabel = d.property.replace(/^https?:\/\//, '').replace(/\/$/, '');
   const periodLabel = formatPeriod(d.dateFrom, d.dateTo);
 
+  // Populate print header
+  document.getElementById('phClient').textContent = domainLabel;
+  document.getElementById('phPeriod').textContent = 'SEO-Report · ' + periodLabel;
+
   let html = `
     <div class="card no-print" style="background:var(--ink);border-color:var(--ink);padding:18px 24px;">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
@@ -792,12 +838,12 @@ function renderSEO(d) {
       }).join('')}</tbody></table></div>`;
   }
 
-  html += `<div class="card no-print"><div class="card-title">Kommentar</div>
-    <div class="field-group"><label class="field-label">Einschätzung für den Kunden</label>
+  html += `<div class="card"><div class="card-title">Einschätzung & Ausblick</div>
+    <div class="field-group"><label class="field-label">Kommentar für den Kunden</label>
     <textarea id="seoCommentary" rows="4" placeholder="Deine Einschätzung zur Entwicklung…"></textarea></div>
     <div class="field-group"><label class="field-label">Nächste Maßnahmen</label>
     <textarea id="seoNext" rows="3" placeholder="Was planst du im nächsten Monat?"></textarea></div>
-    <div class="action-bar"><button class="btn btn-primary" onclick="window.print()">⎙ Als PDF speichern</button></div></div>`;
+    <div class="action-bar no-print"><button class="btn btn-primary" onclick="window.print()">⎙ Als PDF speichern</button></div></div>`;
 
   document.getElementById('seoArea').innerHTML = html;
 
