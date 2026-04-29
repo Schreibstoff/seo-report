@@ -358,17 +358,33 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); backgroun
       <!-- Claude Results -->
       <div id="aiResultsArea"></div>
 
-      <!-- Manual: ChatGPT + Perplexity -->
+      <!-- Manual: Claude, ChatGPT + Perplexity -->
       <div class="card" id="manualCheckCard" style="display:none;">
-        <div class="card-title">Manuelle Checks <small>ChatGPT & Perplexity</small></div>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Kopiere die generierten Fragen in ChatGPT und Perplexity und trage das Ergebnis hier ein.</p>
+        <div class="card-title">Ergebnisse eintragen <small>Claude · ChatGPT · Perplexity</small></div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Stelle die Fragen in allen drei KI-Systemen und trage das Ergebnis hier ein.</p>
 
-        <div class="two-col">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">
+          <div>
+            <div class="field-label" style="color:var(--ai-color);">🤖 Claude – Ergebnis</div>
+            <div class="field-group">
+              <label class="field-label" style="font-size:10px;">Wird die Firma erwähnt?</label>
+              <select id="claudeMention" style="width:100%;" onchange="updateScore()">
+                <option value="">— noch nicht geprüft —</option>
+                <option value="yes">✅ Ja, wird erwähnt</option>
+                <option value="no">❌ Nein, nicht erwähnt</option>
+                <option value="unclear">⚠ Unklar / indirekt</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label class="field-label" style="font-size:10px;">Notizen</label>
+              <textarea id="claudeNotes" rows="3" placeholder="Was hat Claude geantwortet?"></textarea>
+            </div>
+          </div>
           <div>
             <div class="field-label" style="color:#1a7a4a;">💬 ChatGPT – Ergebnis</div>
             <div class="field-group">
               <label class="field-label" style="font-size:10px;">Wird die Firma erwähnt?</label>
-              <select id="chatgptMention" style="width:100%;">
+              <select id="chatgptMention" style="width:100%;" onchange="updateScore()">
                 <option value="">— noch nicht geprüft —</option>
                 <option value="yes">✅ Ja, wird erwähnt</option>
                 <option value="no">❌ Nein, nicht erwähnt</option>
@@ -384,7 +400,7 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); backgroun
             <div class="field-label" style="color:#b05a00;">🔍 Perplexity – Ergebnis</div>
             <div class="field-group">
               <label class="field-label" style="font-size:10px;">Wird die Firma erwähnt?</label>
-              <select id="perplexityMention" style="width:100%;">
+              <select id="perplexityMention" style="width:100%;" onchange="updateScore()">
                 <option value="">— noch nicht geprüft —</option>
                 <option value="yes">✅ Ja, wird erwähnt</option>
                 <option value="no">❌ Nein, nicht erwähnt</option>
@@ -682,24 +698,13 @@ function copyQueries() {
 function updateManualQueries(queries) {}
 
 function updateScore() {
-  const claudeYes = aiQueryResults.filter(r => r.mentioned === 'yes').length;
-  const claudeTotal = aiQueryResults.length;
-  const claudeScore = claudeTotal > 0 ? Math.round((claudeYes / claudeTotal) * 100) : null;
-
+  const claudeVal = document.getElementById('claudeMention')?.value;
   const chatgptVal = document.getElementById('chatgptMention')?.value;
   const perplexityVal = document.getElementById('perplexityMention')?.value;
 
+  if (!claudeVal && !chatgptVal && !perplexityVal) return;
+
   const scoreArea = document.getElementById('aiScoreArea');
-  if (claudeTotal === 0) return;
-
-  const scoreCard = (label, score, colorClass, sublabel) => `
-    <div class="score-card">
-      <div class="score-source">${label}</div>
-      <div class="score-num ${colorClass}">${score}</div>
-      <div class="score-label">${sublabel}</div>
-    </div>`;
-
-  const claudeColor = claudeScore >= 60 ? 'score-high' : claudeScore >= 30 ? 'score-mid' : 'score-low';
   const mentionLabel = v => v === 'yes' ? '✅ Ja' : v === 'no' ? '❌ Nein' : v === 'unclear' ? '⚠ Unklar' : '— offen';
   const mentionColor = v => v === 'yes' ? 'score-high' : v === 'no' ? 'score-low' : 'score-mid';
 
@@ -707,9 +712,21 @@ function updateScore() {
     <div class="ai-score-bar">
       <div class="ai-score-title">KI-Sichtbarkeit – Übersicht</div>
       <div class="score-grid">
-        ${scoreCard('Claude', claudeScore + '%', claudeColor, `${claudeYes} von ${claudeTotal} Abfragen`)}
-        ${scoreCard('ChatGPT', mentionLabel(chatgptVal), mentionColor(chatgptVal), 'Manueller Check')}
-        ${scoreCard('Perplexity', mentionLabel(perplexityVal), mentionColor(perplexityVal), 'Manueller Check')}
+        <div class="score-card">
+          <div class="score-source" style="color:var(--ai-color);">Claude</div>
+          <div class="score-num ${mentionColor(claudeVal)}">${mentionLabel(claudeVal)}</div>
+          <div class="score-label">Manueller Check</div>
+        </div>
+        <div class="score-card">
+          <div class="score-source" style="color:#1a7a4a;">ChatGPT</div>
+          <div class="score-num ${mentionColor(chatgptVal)}">${mentionLabel(chatgptVal)}</div>
+          <div class="score-label">Manueller Check</div>
+        </div>
+        <div class="score-card">
+          <div class="score-source" style="color:#b05a00;">Perplexity</div>
+          <div class="score-num ${mentionColor(perplexityVal)}">${mentionLabel(perplexityVal)}</div>
+          <div class="score-label">Manueller Check</div>
+        </div>
       </div>
     </div>`;
 }
