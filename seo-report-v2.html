@@ -881,6 +881,111 @@ function copyQueries(btn) {
   });
 }
 
+function autoFillCommentary() {
+  const d = currentSEOData;
+  if (!d || !d.summary) { alert('Bitte zuerst SEO-Daten laden.'); return; }
+
+  const summary = d.summary?.rows?.[0] || {};
+  const prev = d.prevSummary?.rows?.[0] || {};
+  const imp = Math.round(summary.impressions || 0);
+  const clk = Math.round(summary.clicks || 0);
+  const pos = parseFloat((summary.position || 0).toFixed(1));
+  const prevImp = Math.round(prev.impressions || 0);
+  const prevClk = Math.round(prev.clicks || 0);
+  const prevPos = parseFloat((prev.position || 0).toFixed(1));
+  const domain = d.property.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  const period = formatPeriod(d.dateFrom, d.dateTo);
+
+  // Delta calculations
+  const impDelta = prevImp > 0 ? Math.round(((imp - prevImp) / prevImp) * 100) : null;
+  const clkDelta = prevClk > 0 ? Math.round(((clk - prevClk) / prevClk) * 100) : null;
+  const posDelta = prevPos > 0 ? parseFloat((prevPos - pos).toFixed(1)) : null;
+
+  // Top keyword
+  const topKw = d.keywords?.rows?.[0];
+  const topPage = d.pages?.rows?.[0];
+
+  // Build commentary
+  let commentary = '';
+
+  // Opening: impression trend
+  if (impDelta !== null) {
+    if (impDelta > 0) {
+      commentary += `Die organische Sichtbarkeit von ${domain} hat sich im Berichtszeitraum ${period} positiv entwickelt. Mit ${formatNum(imp)} Impressionen liegt das Ergebnis ${impDelta}% über dem Vormonat`;
+    } else if (impDelta < 0) {
+      commentary += `Die organische Sichtbarkeit von ${domain} ist im Berichtszeitraum ${period} leicht zurückgegangen. Mit ${formatNum(imp)} Impressionen liegt das Ergebnis ${Math.abs(impDelta)}% unter dem Vormonat`;
+    } else {
+      commentary += `Die organische Sichtbarkeit von ${domain} zeigt sich im Berichtszeitraum ${period} stabil. Mit ${formatNum(imp)} Impressionen entspricht das Ergebnis dem Vormonat`;
+    }
+  } else {
+    commentary += `Im Berichtszeitraum ${period} verzeichnet ${domain} insgesamt ${formatNum(imp)} Impressionen in der Google Suche`;
+  }
+
+  // Clicks
+  if (clkDelta !== null) {
+    if (clkDelta > 0) {
+      commentary += ` – und auch die Klickzahlen steigen: ${formatNum(clk)} Klicks bedeuten ein Plus von ${clkDelta}% gegenüber dem Vormonat.`;
+    } else if (clkDelta < 0) {
+      commentary += `, während die Klickzahlen mit ${formatNum(clk)} Klicks um ${Math.abs(clkDelta)}% zurückgegangen sind.`;
+    } else {
+      commentary += ` bei stabilen ${formatNum(clk)} Klicks.`;
+    }
+  } else {
+    commentary += ` bei ${formatNum(clk)} Klicks.`;
+  }
+
+  // Position
+  if (posDelta !== null) {
+    if (posDelta > 0.5) {
+      commentary += ` Die durchschnittliche Position verbesserte sich von ${prevPos} auf ${pos} – ein klares Zeichen, dass die Inhalte von Google zunehmend als relevant eingestuft werden.`;
+    } else if (posDelta < -0.5) {
+      commentary += ` Die durchschnittliche Position hat sich leicht von ${prevPos} auf ${pos} verschlechtert, was auf stärkeren Wettbewerb oder saisonale Effekte hindeuten kann.`;
+    } else {
+      commentary += ` Die durchschnittliche Position bleibt mit ${pos} stabil.`;
+    }
+  }
+
+  // Top keyword highlight
+  if (topKw) {
+    const kwPos = topKw.position.toFixed(1);
+    commentary += ` Besonders stark zeigt sich das Keyword "${topKw.keys[0]}" mit Position ${kwPos} und ${formatNum(Math.round(topKw.impressions))} Impressionen.`;
+  }
+
+  // Top page highlight
+  if (topPage) {
+    const pageUrl = topPage.keys[0].replace(/^https?:\/\/[^/]+/, '') || '/';
+    commentary += ` Der meistgeklickte Inhalt im Berichtszeitraum ist ${pageUrl} mit ${formatNum(Math.round(topPage.clicks))} Klicks.`;
+  }
+
+  document.getElementById('seoCommentary').value = commentary;
+
+  // Build next steps
+  let next = '';
+  const weakKeywords = (d.keywords?.rows || []).filter(r => r.position > 10 && r.impressions > 100);
+  const strongKeywords = (d.keywords?.rows || []).filter(r => r.position <= 10);
+
+  next += `Im kommenden Monat produzieren wir vier neue Blogartikel, die auf aktuelle Suchtrends und die stärksten Keywords der Domain abgestimmt sind.`;
+
+  if (weakKeywords.length > 0) {
+    next += ` Besonderer Fokus liegt auf der Optimierung bestehender Inhalte: ${weakKeywords.slice(0,2).map(k => `"${k.keys[0]}"`).join(' und ')} haben hohe Sichtbarkeit, aber noch Potenzial für bessere Positionen.`;
+  }
+
+  if (strongKeywords.length > 0) {
+    next += ` Die Top-Keywords ${strongKeywords.slice(0,2).map(k => `"${k.keys[0]}"`).join(' und ')} werden weiter gestärkt, um die erreichten Positionen abzusichern.`;
+  }
+
+  next += ` Zusätzlich überprüfen wir die technische SEO-Basis und passen die Meta-Beschreibungen der meistgeklickten Seiten an, um die Klickrate weiter zu verbessern.`;
+
+  document.getElementById('seoNext').value = next;
+
+  // Flash feedback
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = '✅ Fertig!';
+  btn.style.background = 'var(--success)';
+  setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 2000);
+}
+
 function updateCopyArea() {
   const queries = getCurrentQueries();
   const list = document.getElementById('copyQueryList');
@@ -1000,11 +1105,18 @@ function renderSEO(d) {
       }).join('')}</tbody></table></div>`;
   }
 
-  html += `<div class="card"><div class="card-title">Einschätzung & Ausblick</div>
-    <div class="field-group"><label class="field-label">Kommentar für den Kunden</label>
-    <textarea id="seoCommentary" rows="4" placeholder="Deine Einschätzung zur Entwicklung…"></textarea></div>
-    <div class="field-group"><label class="field-label">Nächste Maßnahmen</label>
-    <textarea id="seoNext" rows="3" placeholder="Was planst du im nächsten Monat?"></textarea></div>
+  html += `<div class="card"><div class="card-title">Einschätzung & Ausblick <small>für den Kunden</small></div>
+    <div class="field-group">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;">
+        <label class="field-label" style="margin-bottom:0;">Kommentar für den Kunden</label>
+        <button class="btn btn-ai" style="font-size:12px;padding:6px 14px;" onclick="autoFillCommentary()">✨ Auto-ausfüllen</button>
+      </div>
+      <textarea id="seoCommentary" rows="5" placeholder="Klick auf 'Auto-ausfüllen' oder schreib deinen eigenen Text…"></textarea>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Nächste Maßnahmen</label>
+      <textarea id="seoNext" rows="4" placeholder="Wird automatisch befüllt…"></textarea>
+    </div>
     <div class="action-bar no-print"><button class="btn btn-primary" onclick="window.print()">⎙ Als PDF speichern</button></div></div>`;
 
   document.getElementById('seoArea').innerHTML = html;
