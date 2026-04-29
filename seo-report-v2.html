@@ -371,12 +371,15 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); backgroun
       <!-- Copy Area – always visible -->
       <div class="card" id="copyArea">
         <div class="card-title">Nachfrage für KI-Systeme <small>Claude · ChatGPT · Perplexity</small></div>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Stelle zuerst deine Frage. Sobald die KI geantwortet hat, diese Nachfrage einfügen – sie erzwingt eine strukturierte Anbieterliste.</p>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Jede Frage enthält bereits die Nachfrage, die eine strukturierte Anbieterliste erzwingt. Einzeln oder alle auf einmal kopieren.</p>
         <div id="copyQueryList"></div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
-          <a href="https://claude.ai" target="_blank" class="btn" style="background:var(--ai-light);color:var(--ai-color);">Öffne Claude →</a>
-          <a href="https://chatgpt.com" target="_blank" class="btn" style="background:#e8f8f0;color:#1a7a4a;">Öffne ChatGPT →</a>
-          <a href="https://perplexity.ai" target="_blank" class="btn" style="background:#fff0e0;color:#b05a00;">Öffne Perplexity →</a>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="https://claude.ai" target="_blank" class="btn" style="background:var(--ai-light);color:var(--ai-color);">Öffne Claude →</a>
+            <a href="https://chatgpt.com" target="_blank" class="btn" style="background:#e8f8f0;color:#1a7a4a;">Öffne ChatGPT →</a>
+            <a href="https://perplexity.ai" target="_blank" class="btn" style="background:#fff0e0;color:#b05a00;">Öffne Perplexity →</a>
+          </div>
+          <button class="btn btn-dark" onclick="copyAllQueries(this)">📋 Alle 6 Fragen kopieren</button>
         </div>
       </div>
 
@@ -467,16 +470,12 @@ let aiQueryResults = [];
 
 // Default queries (will be customized)
 const defaultQueries = [
-  'Wie schütze ich mein Unternehmen vor Ransomware und Cyberangriffen? Welcher IT-Dienstleister in {city} kann dabei helfen?',
-  'Was muss ich bei NIS2 beachten – bin ich betroffen? Wer berät {target} in {city} dazu?',
+  'Wie schütze ich mein Unternehmen vor Ransomware und Cyberangriffen?',
+  'Was muss ich bei NIS2 beachten – bin ich als {target} in {city} betroffen?',
   'Was tun, wenn ich gehackt wurde – wer hilft bei einem IT-Notfall in {city}?',
-  'Cloud oder eigener Server – wer berät mich als Unternehmen in {city} bei dieser Entscheidung?',
-  'Wie sichere ich meine Daten richtig ab? Welches IT-Unternehmen in {city} hilft bei einer Backup-Strategie?',
-  'Lohnt sich ein Managed-Service-Vertrag? Wer bietet das für {target} in {city} an?',
-  'Wie richte ich sicheres Homeoffice ein? Welcher IT-Dienstleister in {city} unterstützt dabei?',
-  'Erfülle ich die DSGVO-Anforderungen an meine IT? Wer prüft das für Unternehmen in {city}?',
-  'Brauche ich eine Cyberversicherung? Welches IT-Unternehmen in {city} hilft bei den Voraussetzungen?',
-  'Was bringt KI im Arbeitsalltag – wer berät {target} in {city} zur KI-Einführung?'
+  'Lohnt sich ein Managed-Service-Vertrag oder reicht IT auf Zuruf für {target}?',
+  'Wie sichere ich meine Daten richtig ab – welche Backup-Strategie empfiehlst du?',
+  'Wie richte ich sicheres Homeoffice für meine Mitarbeiter ein?'
 ];
 
 function buildQueries() {
@@ -983,16 +982,22 @@ function getFollowUp(city) {
 function updateCopyArea() {
   const queries = getCurrentQueries();
   const city = document.getElementById('aiCity').value || 'Ihrer Stadt';
+  const followUp = getFollowUp(city);
   const list = document.getElementById('copyQueryList');
   if (!list) return;
-  const followUp = getFollowUp(city);
 
-  list.innerHTML = `
-    <div style="background:var(--ai-light);border:1px solid #c9a8f0;border-radius:8px;padding:16px;">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--ai-color);margin-bottom:10px;">Nachfrage – nach jeder KI-Antwort einfügen</div>
-      <div style="font-size:14px;color:var(--ink);line-height:1.6;font-style:italic;">"${escHtml(followUp)}"</div>
-      <button class="btn btn-ai" style="margin-top:12px;" onclick="copyText(${JSON.stringify(followUp)}, this)">📋 Nachfrage kopieren</button>
-    </div>`;
+  list.innerHTML = queries.map((q, i) => {
+    const fullQ = `${q}\n\n${followUp}`;
+    return `
+      <div style="border:1px solid var(--border);border-radius:8px;padding:14px 16px;background:var(--paper);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div style="flex:1;">
+          <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;">${i+1}.</span>
+          <p style="font-size:13.5px;margin:4px 0 6px;color:var(--ink);line-height:1.5;">${escHtml(q)}</p>
+          <p style="font-size:12px;color:var(--ai-color);font-style:italic;line-height:1.5;">${escHtml(followUp)}</p>
+        </div>
+        <button class="btn btn-ghost" style="flex-shrink:0;font-size:12px;padding:6px 12px;" onclick="copyText(${JSON.stringify(fullQ)}, this)">📋</button>
+      </div>`;
+  }).join('');
 }
 
 function copyText(text, btn) {
@@ -1017,9 +1022,7 @@ function copyAllQueries(btn) {
   const queries = getCurrentQueries();
   const city = document.getElementById('aiCity').value || 'Ihrer Stadt';
   const followUp = getFollowUp(city);
-  const text = queries.map((q, i) =>
-    `Frage ${i+1}:\nSchritt 1: ${q}\nSchritt 2: ${followUp}`
-  ).join('\n\n---\n\n');
+  const text = queries.map((q, i) => `${i+1}. ${q}\n${followUp}`).join('\n\n');
   copyText(text, btn);
 }
 
