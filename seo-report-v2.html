@@ -344,11 +344,27 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); backgroun
         </div>
 
         <div class="field-label" style="margin-top:8px;">Abfragen – aus Sicht des Kunden mit IT-Problemen:</div>
+
+        <!-- Refresh Banner -->
+        <div id="refreshBanner" style="display:none;background:#fff8e8;border:1px solid #f0d080;border-radius:6px;padding:12px 16px;margin:12px 0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:18px;">⏰</span>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#856404;">Fragen sind älter als 30 Tage</div>
+              <div style="font-size:12px;color:#856404;opacity:0.8;" id="lastUpdatedLabel"></div>
+            </div>
+          </div>
+          <button class="btn" style="background:#856404;color:white;font-size:12px;padding:7px 16px;" onclick="refreshQueries()">🤖 Jetzt neu generieren</button>
+        </div>
+
         <div class="query-grid" id="queryGrid"></div>
 
-        <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;">
-          <button class="btn btn-ai" onclick="runAICheck()" id="runAiBtn">🔍 Abfragen generieren</button>
-          <button class="btn btn-ghost" onclick="resetAIQueries()">Abfragen zurücksetzen</button>
+        <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div style="font-size:11px;color:var(--muted);" id="queriesLastUpdated"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-ai" onclick="refreshQueries()" id="refreshQueriesBtn">🤖 Fragen neu generieren</button>
+            <button class="btn btn-ghost" onclick="resetAIQueries()">Zurücksetzen</button>
+          </div>
         </div>
       </div>
 
@@ -465,31 +481,139 @@ function buildQueries() {
   );
 }
 
-function initQueryGrid() {
+function initQueryGrid(queries) {
+  const q = queries || getCurrentQueries();
   const grid = document.getElementById('queryGrid');
   grid.innerHTML = '';
-  const queries = buildQueries();
-  queries.forEach((q, i) => {
+  q.forEach((query, i) => {
     grid.innerHTML += `
       <div class="query-item">
         <input type="checkbox" id="q${i}" checked>
-        <label for="q${i}">${q}</label>
+        <label for="q${i}">${query}</label>
       </div>`;
   });
 }
 
+function getCurrentQueries() {
+  const saved = localStorage.getItem('schreibstoff_queries');
+  if (saved) {
+    try { return JSON.parse(saved); } catch(e) {}
+  }
+  return buildDefaultQueries();
+}
+
+function buildDefaultQueries() {
+  const city = document.getElementById('aiCity').value || 'Ihrer Stadt';
+  const target = document.getElementById('aiTarget').value || 'Unternehmen';
+  return defaultQueries.map(q =>
+    q.replace(/{city}/g, city).replace(/{target}/g, target)
+  );
+}
+
+function checkQueryAge() {
+  const lastUpdated = localStorage.getItem('schreibstoff_queries_date');
+  const label = document.getElementById('queriesLastUpdated');
+  const banner = document.getElementById('refreshBanner');
+  const bannerLabel = document.getElementById('lastUpdatedLabel');
+
+  if (!lastUpdated) {
+    if (label) label.textContent = 'Noch nicht aktualisiert';
+    return;
+  }
+
+  const date = new Date(lastUpdated);
+  const daysSince = Math.floor((Date.now() - date) / 86400000);
+  const dateStr = date.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
+
+  if (label) label.textContent = `Zuletzt aktualisiert: ${dateStr}`;
+
+  if (daysSince >= 30) {
+    if (banner) banner.style.display = 'flex';
+    if (bannerLabel) bannerLabel.textContent = `Zuletzt aktualisiert am ${dateStr} – vor ${daysSince} Tagen`;
+  } else {
+    if (banner) banner.style.display = 'none';
+  }
+}
+
+async function refreshQueries() {
+  const btn = document.getElementById('refreshQueriesBtn');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Generiere neue Fragen…';
+
+  const city = document.getElementById('aiCity').value || 'einer deutschen Stadt';
+  const service = document.getElementById('aiService').value || 'IT-Services';
+  const target = document.getElementById('aiTarget').value || 'KMU';
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `Du bist ein Experte für B2B-Marketing und IT-Dienstleistungen. Generiere genau 10 Fragen, die Unternehmer aktuell rund um ihre Unternehmens-IT stellen. Die Fragen sollen echte Schmerzpunkte und Probleme widerspiegeln – keine Fachjargon-Fragen. Jede Frage soll mit einer konkreten Empfehlungsaufforderung enden, die nach IT-Dienstleistern in der Region fragt. Antworte NUR mit einem JSON-Array der 10 Fragen, ohne Erklärungen, ohne Markdown, ohne Nummerierung. Beispiel-Format: ["Frage 1?", "Frage 2?"]`,
+        messages: [{
+          role: 'user',
+          content: `Generiere 10 aktuelle Unternehmerfragen rund um IT-Sicherheit, Digitalisierung und IT-Betreuung für ${target} in ${city}. Jede Frage soll einen echten Schmerzpunkt ansprechen und mit "Wer hilft dabei in ${city}?" oder ähnlichem enden. Aktueller Kontext: ${new Date().toLocaleDateString('de-DE', {month:'long', year:'numeric'})}.`
+        }]
+      })
+    });
+
+    const data = await resp.json();
+    const text = data.content?.[0]?.text || '';
+    const clean = text.replace(/```json|```/g, '').trim();
+    const newQueries = JSON.parse(clean);
+
+    if (Array.isArray(newQueries) && newQueries.length > 0) {
+      localStorage.setItem('schreibstoff_queries', JSON.stringify(newQueries));
+      localStorage.setItem('schreibstoff_queries_date', new Date().toISOString());
+      initQueryGrid(newQueries);
+      checkQueryAge();
+      document.getElementById('refreshBanner').style.display = 'none';
+
+      // Show success flash
+      btn.textContent = '✅ Neue Fragen generiert!';
+      btn.style.background = 'var(--success)';
+      setTimeout(() => {
+        btn.textContent = origText;
+        btn.style.background = '';
+        btn.disabled = false;
+      }, 2500);
+    } else {
+      throw new Error('Ungültiges Format');
+    }
+  } catch(e) {
+    btn.textContent = '⚠ Fehler – Zurücksetzen';
+    btn.style.background = 'var(--accent)';
+    setTimeout(() => {
+      btn.textContent = origText;
+      btn.style.background = '';
+      btn.disabled = false;
+    }, 2500);
+  }
+}
+
 function resetAIQueries() {
-  initQueryGrid();
+  localStorage.removeItem('schreibstoff_queries');
+  localStorage.removeItem('schreibstoff_queries_date');
+  initQueryGrid(buildDefaultQueries());
+  checkQueryAge();
 }
 
 // Init
 window.onload = function() {
   setDefaultDates();
-  initQueryGrid();
+  initQueryGrid(getCurrentQueries());
+  checkQueryAge();
 
   // Update queries when fields change
-  ['aiCompany','aiCity','aiService','aiTarget'].forEach(id => {
-    document.getElementById(id).addEventListener('input', initQueryGrid);
+  ['aiCity','aiTarget'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+      if (!localStorage.getItem('schreibstoff_queries')) {
+        initQueryGrid(buildDefaultQueries());
+      }
+    });
   });
 
   try {
@@ -655,7 +779,7 @@ function runAICheck() {
   const city = document.getElementById('aiCity').value;
   if (!company || !city) { alert('Bitte Firmenname und Stadt eingeben.'); return; }
 
-  const queries = buildQueries().filter((_, i) => document.getElementById('q' + i)?.checked);
+  const queries = getCurrentQueries().filter((_, i) => document.getElementById('q' + i)?.checked);
   if (queries.length === 0) { alert('Bitte mindestens eine Abfrage auswählen.'); return; }
 
   // Show query cards for all 3 systems
