@@ -343,7 +343,7 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); backgroun
           </div>
         </div>
 
-        <div class="field-label" style="margin-top:8px;">Abfragen – Claude prüft diese automatisch:</div>
+        <div class="field-label" style="margin-top:8px;">Abfragen – aus Sicht des Kunden mit IT-Problemen:</div>
         <div class="query-grid" id="queryGrid"></div>
 
         <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;">
@@ -439,12 +439,12 @@ let aiQueryResults = [];
 
 // Default queries (will be customized)
 const defaultQueries = [
-  'Welches IT-Systemhaus empfiehlst du in {city}?',
-  'Welche IT-Dienstleister gibt es in {city} für KMU?',
-  'Wer hilft {target} in {city} mit {service}?',
-  'Welche IT-Unternehmen aus {city} sind bekannt?',
-  'IT-Support für Unternehmen in {city} – wer ist gut?',
-  'Welche Managed Service Provider gibt es in der Region {city}?'
+  'Wir haben in {city} ständig IT-Probleme und brauchen dringend Hilfe – an wen können wir uns wenden?',
+  'Unser Unternehmen in {city} wurde Opfer eines Hackerangriffs – wer kann uns jetzt helfen?',
+  'Wir erfüllen als {target} in {city} die NIS2-Anforderungen nicht – was sollen wir tun?',
+  'Unsere IT ist überlastet und wir wissen nicht weiter – gibt es jemanden in {city}, der das für uns übernimmt?',
+  'Wir haben keine eigene IT-Abteilung und brauchen in {city} jemanden, der sich um alles kümmert – wer hilft?',
+  'Nach dem letzten Cyberangriff auf ein Unternehmen in {city} machen wir uns Sorgen – wer kann unsere IT absichern?'
 ];
 
 function buildQueries() {
