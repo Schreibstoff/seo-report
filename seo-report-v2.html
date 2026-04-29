@@ -346,7 +346,7 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); backgroun
         <div class="field-label" style="margin-top:8px;">Abfragen – aus Sicht des Kunden mit IT-Problemen:</div>
 
         <!-- Refresh Banner -->
-        <div id="refreshBanner" style="display:none;background:#fff8e8;border:1px solid #f0d080;border-radius:6px;padding:12px 16px;margin:12px 0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div id="refreshBanner" style="display:none;background:#fff8e8;border:1px solid #f0d080;border-radius:6px;padding:12px 16px;margin:12px 0;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:10px;">
             <span style="font-size:18px;">⏰</span>
             <div>
@@ -375,7 +375,7 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); backgroun
       <div id="aiResultsArea"></div>
 
       <!-- Manual: Claude, ChatGPT + Perplexity -->
-      <div class="card" id="manualCheckCard" style="display:none;">
+      <div class="card" id="manualCheckCard">
         <div class="card-title">Ergebnisse eintragen <small>Claude · ChatGPT · Perplexity</small></div>
         <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Stelle die Fragen in allen drei KI-Systemen und trage das Ergebnis hier ein.</p>
 
@@ -535,63 +535,94 @@ function checkQueryAge() {
   }
 }
 
+// Large question bank – rotates monthly, no API needed
+const questionBank = [
+  // Sicherheit & Cyberangriffe
+  'Wie schütze ich mein Unternehmen vor Ransomware und Cyberangriffen? Wer hilft dabei in {city}?',
+  'Was tun, wenn ich gehackt wurde – wer hilft bei einem IT-Notfall in {city}?',
+  'Brauche ich eine Cyberversicherung – und was setzt sie voraus? Wer berät in {city}?',
+  'Wie erkenne ich Phishing-Mails, bevor meine Mitarbeiter draufklicken? Wer schult {target} in {city}?',
+  'Wie sicher ist unser WLAN wirklich – und wer überprüft das für uns in {city}?',
+  'Was ist ein Penetrationstest und brauchen wir das? Wer macht das für {target} in {city}?',
+  'Wie schütze ich meine Mitarbeiter vor Social-Engineering-Angriffen? Wer hilft in {city}?',
+  'Können Hacker über unsere Drucker ins Netzwerk eindringen? Wer sichert unsere IT in {city}?',
+
+  // NIS2 & Compliance
+  'Was muss ich bei NIS2 beachten – bin ich betroffen? Wer berät {target} in {city} dazu?',
+  'Erfülle ich die DSGVO-Anforderungen an meine IT? Wer prüft das für Unternehmen in {city}?',
+  'Was passiert, wenn ich NIS2 nicht umsetze – und wer hilft mir schnell in {city}?',
+  'Wie dokumentiere ich meine IT-Sicherheitsmaßnahmen für Audits? Wer unterstützt in {city}?',
+
+  // Backup & Datensicherung
+  'Wie sichere ich meine Daten richtig ab – welche Backup-Strategie? Wer hilft in {city}?',
+  'Wie lange dauert eine Datenwiedererstellung nach einem Angriff – wer testet das für uns in {city}?',
+  'Meine Backups laufen seit Wochen fehlerhaft – wer kann das sofort beheben in {city}?',
+
+  // Cloud & Server
+  'Cloud oder eigener Server – wer berät mich als Unternehmen in {city} bei dieser Entscheidung?',
+  'Unsere Server sind veraltet – wer kümmert sich um eine moderne Infrastruktur in {city}?',
+  'Wie migriere ich sicher in die Cloud ohne Datenverlust? Wer begleitet {target} in {city}?',
+  'Microsoft 365 oder Google Workspace – wer hilft mir bei der Entscheidung in {city}?',
+
+  // Homeoffice & Remote Work
+  'Wie richte ich sicheres Homeoffice ein? Welcher IT-Dienstleister in {city} unterstützt dabei?',
+  'Unsere Mitarbeiter arbeiten hybrid – wie halten wir die IT sicher? Wer hilft in {city}?',
+  'VPN einrichten für Homeoffice – wer macht das professionell für {target} in {city}?',
+
+  // Managed Services & IT-Betreuung
+  'Lohnt sich ein Managed-Service-Vertrag? Wer bietet das für {target} in {city} an?',
+  'Wir haben keine eigene IT-Abteilung – wer übernimmt das komplett für uns in {city}?',
+  'Unsere IT läuft ständig instabil – wer kümmert sich zuverlässig darum in {city}?',
+  'Was kostet externe IT-Betreuung – und welche Anbieter gibt es in {city}?',
+  'Unser IT-Dienstleister ist unzuverlässig – wer ist eine gute Alternative in {city}?',
+
+  // KI & Digitalisierung
+  'Was bringt KI im Arbeitsalltag – wer berät {target} in {city} zur KI-Einführung?',
+  'Wie automatisiere ich wiederkehrende Aufgaben mit KI? Wer hilft {target} in {city}?',
+  'Welche KI-Tools machen wirklich Sinn für unser Unternehmen in {city}?',
+
+  // Notfall & Support
+  'Unser Server ist ausgefallen – wer kann sofort helfen in {city}?',
+  'Wie erstelle ich einen IT-Notfallplan? Wer hilft {target} in {city} dabei?',
+  'Was ist ein IT-Audit und brauchen wir das? Wer macht das für Unternehmen in {city}?',
+  'Wie schnell kann ein IT-Dienstleister bei uns vor Ort sein in {city}?',
+];
+
 async function refreshQueries() {
   const btn = document.getElementById('refreshQueriesBtn');
   const origText = btn.textContent;
   btn.disabled = true;
   btn.textContent = '⏳ Generiere neue Fragen…';
 
-  const city = document.getElementById('aiCity').value || 'einer deutschen Stadt';
-  const service = document.getElementById('aiService').value || 'IT-Services';
-  const target = document.getElementById('aiTarget').value || 'KMU';
+  const city = document.getElementById('aiCity').value || 'Ihrer Stadt';
+  const target = document.getElementById('aiTarget').value || 'Unternehmen';
 
-  try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: `Du bist ein Experte für B2B-Marketing und IT-Dienstleistungen. Generiere genau 10 Fragen, die Unternehmer aktuell rund um ihre Unternehmens-IT stellen. Die Fragen sollen echte Schmerzpunkte und Probleme widerspiegeln – keine Fachjargon-Fragen. Jede Frage soll mit einer konkreten Empfehlungsaufforderung enden, die nach IT-Dienstleistern in der Region fragt. Antworte NUR mit einem JSON-Array der 10 Fragen, ohne Erklärungen, ohne Markdown, ohne Nummerierung. Beispiel-Format: ["Frage 1?", "Frage 2?"]`,
-        messages: [{
-          role: 'user',
-          content: `Generiere 10 aktuelle Unternehmerfragen rund um IT-Sicherheit, Digitalisierung und IT-Betreuung für ${target} in ${city}. Jede Frage soll einen echten Schmerzpunkt ansprechen und mit "Wer hilft dabei in ${city}?" oder ähnlichem enden. Aktueller Kontext: ${new Date().toLocaleDateString('de-DE', {month:'long', year:'numeric'})}.`
-        }]
-      })
-    });
+  // Pick 10 questions based on current month – different set each month
+  const month = new Date().getMonth();
+  const shuffled = [...questionBank].sort((a, b) => {
+    // Deterministic shuffle based on month
+    const hashA = (a.charCodeAt(0) + month * 7) % questionBank.length;
+    const hashB = (b.charCodeAt(0) + month * 7) % questionBank.length;
+    return hashA - hashB;
+  });
 
-    const data = await resp.json();
-    const text = data.content?.[0]?.text || '';
-    const clean = text.replace(/```json|```/g, '').trim();
-    const newQueries = JSON.parse(clean);
+  const selected = shuffled.slice(0, 10).map(q =>
+    q.replace(/{city}/g, city).replace(/{target}/g, target)
+  );
 
-    if (Array.isArray(newQueries) && newQueries.length > 0) {
-      localStorage.setItem('schreibstoff_queries', JSON.stringify(newQueries));
-      localStorage.setItem('schreibstoff_queries_date', new Date().toISOString());
-      initQueryGrid(newQueries);
-      checkQueryAge();
-      document.getElementById('refreshBanner').style.display = 'none';
+  localStorage.setItem('schreibstoff_queries', JSON.stringify(selected));
+  localStorage.setItem('schreibstoff_queries_date', new Date().toISOString());
+  initQueryGrid(selected);
+  checkQueryAge();
+  document.getElementById('refreshBanner').style.display = 'none';
 
-      // Show success flash
-      btn.textContent = '✅ Neue Fragen generiert!';
-      btn.style.background = 'var(--success)';
-      setTimeout(() => {
-        btn.textContent = origText;
-        btn.style.background = '';
-        btn.disabled = false;
-      }, 2500);
-    } else {
-      throw new Error('Ungültiges Format');
-    }
-  } catch(e) {
-    btn.textContent = '⚠ Fehler – Zurücksetzen';
-    btn.style.background = 'var(--accent)';
-    setTimeout(() => {
-      btn.textContent = origText;
-      btn.style.background = '';
-      btn.disabled = false;
-    }, 2500);
-  }
+  btn.textContent = '✅ Neue Fragen generiert!';
+  btn.style.background = 'var(--success)';
+  setTimeout(() => {
+    btn.textContent = origText;
+    btn.style.background = '';
+    btn.disabled = false;
+  }, 2000);
 }
 
 function resetAIQueries() {
@@ -809,8 +840,7 @@ function runAICheck() {
     </div>`;
 
   window._aiQueries = queries;
-  document.getElementById('manualCheckCard').style.display = 'block';
-  document.getElementById('manualCheckCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  updateManualQueries(queries);
 }
 
 function copyQueries() {
